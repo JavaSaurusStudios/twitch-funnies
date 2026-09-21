@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Muffin Button</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            background: #17120f;
+            color: #f5e6d8;
+
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 650px;
+            text-align: center;
+        }
+
+        .muffin {
+            font-size: 80px;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 48px;
+        }
+
+        .subtitle {
+            color: #c9ad99;
+            font-size: 18px;
+            margin: 10px 0 35px;
+        }
+
+        .card {
+            background: #241b17;
+            border: 1px solid #49352a;
+            border-radius: 14px;
+            padding: 25px;
+            text-align: left;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            margin-top: 0;
+            color: #e7aa6a;
+        }
+
+        p {
+            line-height: 1.5;
+        }
+
+        code {
+            background: #15100e;
+            padding: 3px 6px;
+            border-radius: 5px;
+            color: #e7aa6a;
+        }
+
+        .url {
+            width: 100%;
+            padding: 14px;
+            background: #15100e;
+            border: 1px solid #49352a;
+            border-radius: 8px;
+            color: #bfa99a;
+            font-family: monospace;
+            font-size: 14px;
+            word-break: break-all;
+        }
+
+        .footer {
+            margin-top: 25px;
+            color: #765f51;
+            font-size: 13px;
+        }
+
+        a {
+            color: #e7aa6a;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="muffin">🧁</div>
+
+    <h1>Muffin Button</h1>
+
+    <div class="subtitle">
+        Because every stream needs more muffins.
+    </div>
+
+    <div class="card">
+        <h2>What is it?</h2>
+
+        <p>
+            A tiny OBS Browser Source that throws random muffins
+            onto your stream whenever someone presses the button
+            or says <code>muffin</code> in Twitch chat.
+        </p>
+
+        <p>
+            Muffins have physics, bouncing, collisions, spinning
+            and a satisfying muffin sound.
+        </p>
+    </div>
+
+    <div class="card">
+        <h2>OBS Setup</h2>
+
+        <p>
+            Add a <strong>Browser Source</strong> to OBS and point it
+            at the Muffin Button page.
+        </p>
+
+        <p>
+            You can configure it directly through the URL:
+        </p>
+
+        <div class="url">
+            ?channel=YOUR_CHANNEL&min=1&max=5&button=false
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>URL Options</h2>
+
+        <p><code>channel</code> — Twitch channel</p>
+        <p><code>min</code> / <code>max</code> — muffins per trigger</p>
+        <p><code>button=false</code> — hide the manual button</p>
+        <p><code>gravity</code> — muffin gravity</p>
+        <p><code>bounce</code> — floor/wall bounce</p>
+        <p><code>lifetime</code> — how long muffins remain</p>
+        <p><code>maxMuffins</code> — maximum muffins on screen</p>
+    </div>
+
+    <div class="footer">
+        Made for absolutely necessary muffin-related streaming purposes.
+    </div>
+
+</div>
+
+</body>
+</html>
