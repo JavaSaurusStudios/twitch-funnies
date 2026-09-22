@@ -295,19 +295,9 @@ function connectToTwitch() {
             return;
 
 
-        // Matches:
-        // muffin
-        // muffin!
-        // muffin?
-        // "muffin"
-
-        if (
-            !/\bmuffin\b/i.test(
-                message
-            )
-        ) {
-            return;
-        }
+if (!/!muffin\b/i.test(message)) {
+    return;
+}
 
 
         const amount =
