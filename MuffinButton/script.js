@@ -6,10 +6,12 @@ muffinSound.volume = 1.0;
 
 function playMuffinSound() {
     muffinSound.currentTime = 0;
+
     muffinSound.play().catch(error => {
         console.warn("Could not play muffin sound:", error);
     });
 }
+
 
 // ============================================================
 // URL SETTINGS
@@ -31,6 +33,15 @@ function getString(name, defaultValue) {
     return value !== null && value.trim() !== ""
         ? value.trim()
         : defaultValue;
+}
+
+function getBoolean(name, defaultValue) {
+    const value = params.get(name);
+
+    if (value === null)
+        return defaultValue;
+
+    return value.toLowerCase() === "true";
 }
 
 
@@ -56,24 +67,20 @@ const SETTINGS = {
     rotationFriction: getNumber("rotationFriction", 0.97),
     rotationStopSpeed: getNumber("rotationStopSpeed", 3),
     lifetime: getNumber("lifetime", 10),
-    maxMuffins: Math.max(1, Math.floor(getNumber("maxMuffins", 50))),
+    maxMuffins: Math.max(
+        1,
+        Math.floor(getNumber("maxMuffins", 50))
+    ),
     baseSize: getNumber("size", 100),
     collisionSize: getNumber("collisionSize", 0.5),
     collisionBounce: getNumber("collisionBounce", 0.35)
 };
 
+
 if (!SETTINGS.showButton) {
     button.style.display = "none";
 }
 
-function getBoolean(name, defaultValue) {
-    const value = new URLSearchParams(window.location.search).get(name);
-
-    if (value === null)
-        return defaultValue;
-
-    return value.toLowerCase() === "true";
-}
 
 // ============================================================
 // STATE
@@ -250,7 +257,7 @@ button.addEventListener(
 
 
 // ============================================================
-// TWITCH
+// TWITCH / COMFYJS
 // ============================================================
 
 function connectToTwitch() {
@@ -283,21 +290,26 @@ function connectToTwitch() {
     );
 
 
-    ComfyJS.onChat = function (
+    // --------------------------------------------------------
+    // COMMAND HANDLER
+    // --------------------------------------------------------
+
+    ComfyJS.onCommand = function (
         user,
+        command,
         message,
         flags,
-        self,
         extra
     ) {
 
-        if (self)
+        // ComfyJS gives us the command WITHOUT the !
+
+        if (
+            command.toLowerCase() !==
+            "muffin"
+        ) {
             return;
-
-
-if (!/!muffin\b/i.test(message)) {
-    return;
-}
+        }
 
 
         const amount =
@@ -308,7 +320,7 @@ if (!/!muffin\b/i.test(message)) {
 
 
         console.log(
-            `${user} said muffin! Spawning ${amount} muffins.`
+            `${user} used !muffin! Spawning ${amount} muffins.`
         );
 
 
