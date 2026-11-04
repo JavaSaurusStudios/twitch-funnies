@@ -63,6 +63,28 @@ const SETTINGS = {
 const buttonContainer = document.getElementById("buttonContainer");
 let controlsVisible = false;
 
+const commandStorageKey = "enabledChatCommands";
+const enabledCommands = { muffin: true, cookie: true, senzu: true };
+try {
+    const saved = JSON.parse(localStorage.getItem(commandStorageKey));
+    for (const command of Object.keys(enabledCommands)) {
+        if (saved && typeof saved[command] === "boolean") enabledCommands[command] = saved[command];
+    }
+} catch (error) { /* Use defaults when storage is unavailable or invalid. */ }
+
+for (const command of Object.keys(enabledCommands)) {
+    const toggle = document.getElementById(`${command}CommandEnabled`);
+    toggle.checked = enabledCommands[command];
+    toggle.addEventListener("change", () => {
+        enabledCommands[command] = toggle.checked;
+        try {
+            localStorage.setItem(commandStorageKey, JSON.stringify(enabledCommands));
+        } catch (error) {
+            console.warn("Chat command settings could not be saved; they apply until this page closes.", error);
+        }
+    });
+}
+
 const targetPicker = document.getElementById("targetPicker");
 const targetMarker = document.getElementById("targetMarker");
 const targetSettings = document.getElementById("targetSettings");
@@ -319,6 +341,7 @@ function connectToTwitch() {
 
     ComfyJS.onCommand = function(user, command, message, flags, extra) {
         command = command.toLowerCase();
+        if (!Object.hasOwn(enabledCommands, command) || !enabledCommands[command]) return;
         if (command === "senzu") {
             throwSenzu();
             return;

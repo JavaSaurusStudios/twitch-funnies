@@ -12,9 +12,18 @@
 
     <div id="muffinArea"></div>
 <div id="buttonContainer" hidden>
-    <button id="muffinButton">MUFFIN</button>
-    <button id="cookieButton">COOKIE</button>
-    <button id="senzuButton">SENZU</button>
+    <div class="commandControl">
+        <button id="muffinButton">MUFFIN</button>
+        <label><input id="muffinCommandEnabled" type="checkbox" checked> !muffin enabled</label>
+    </div>
+    <div class="commandControl">
+        <button id="cookieButton">COOKIE</button>
+        <label><input id="cookieCommandEnabled" type="checkbox" checked> !cookie enabled</label>
+    </div>
+    <div class="commandControl">
+        <button id="senzuButton">SENZU</button>
+        <label><input id="senzuCommandEnabled" type="checkbox" checked> !senzu enabled</label>
+    </div>
     <button id="targetButton" aria-pressed="false">SET SENZU TARGET</button>
     <button id="resetTargetButton">RESET TARGET</button>
     <button id="hideControlsButton">HIDE</button>

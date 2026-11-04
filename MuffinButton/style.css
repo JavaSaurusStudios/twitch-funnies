@@ -51,6 +51,23 @@ body {
     box-shadow: 0 1px 0 #6b3e26;
 }
 
+.commandControl {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.commandControl label {
+    padding: 8px;
+    border-radius: 6px;
+    background: #241b17;
+    color: white;
+    font: 14px Arial, sans-serif;
+    cursor: pointer;
+}
+.commandControl input {
+    accent-color: #85c75b;
+}
+
 .muffin {
     position: absolute;
     user-select: none;
