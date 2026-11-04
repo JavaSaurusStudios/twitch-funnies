@@ -1,8 +1,11 @@
 const muffinButton = document.getElementById("muffinButton");
 const cookieButton = document.getElementById("cookieButton");
+const senzuButton = document.getElementById("senzuButton");
 const muffinArea = document.getElementById("muffinArea");
 const muffinSound = new Audio("muffin-button.mp3");
 const cookieSound = new Audio("cookie-button.mp3");
+const senzuSound = new Audio("senzu-button.mp3");
+senzuSound.preload = "auto";
 
 muffinSound.volume = 1.0;
 
@@ -43,7 +46,6 @@ let maxMuffins = Math.max(minMuffins, Math.floor(getNumber("max", 3)));
 
 const SETTINGS = {
     channel: getString("channel", ""),
-    showButton: getBoolean("button", true),
     gravity: getNumber("gravity", 900),
     bounce: getNumber("bounce", 0.45),
     friction: getNumber("friction", 0.995),
@@ -58,16 +60,169 @@ const SETTINGS = {
     collisionBounce: getNumber("collisionBounce", 0.35)
 };
 
-if (!SETTINGS.showButton) {
-    muffinButton.style.display = "none";
-    cookieButton.style.display = "none";
+const buttonContainer = document.getElementById("buttonContainer");
+let controlsVisible = false;
+
+const targetPicker = document.getElementById("targetPicker");
+const targetMarker = document.getElementById("targetMarker");
+const targetSettings = document.getElementById("targetSettings");
+const targetButton = document.getElementById("targetButton");
+const targetUrl = document.getElementById("targetUrl");
+const targetStorageKey = "senzuTarget";
+const clampUnit = value => Math.max(0, Math.min(1, value));
+let senzuTarget = null;
+try {
+    const saved = JSON.parse(localStorage.getItem(targetStorageKey));
+    if (saved && Number.isFinite(saved.x) && Number.isFinite(saved.y)) {
+        senzuTarget = { x: clampUnit(saved.x), y: clampUnit(saved.y) };
+    }
+} catch (error) { /* Storage may be unavailable in an OBS browser source. */ }
+if (params.has("senzuX") && params.has("senzuY")) {
+    senzuTarget = { x: clampUnit(getNumber("senzuX", 0.5)), y: clampUnit(getNumber("senzuY", 0.5)) };
 }
+
+function showTargetSettings() {
+    targetSettings.hidden = !controlsVisible || !senzuTarget;
+    targetMarker.hidden = !controlsVisible || !senzuTarget;
+    if (!senzuTarget) return;
+    targetMarker.style.left = `${senzuTarget.x * 100}%`;
+    targetMarker.style.top = `${senzuTarget.y * 100}%`;
+    const url = new URL(window.location.href);
+    url.searchParams.set("senzuX", senzuTarget.x.toFixed(6));
+    url.searchParams.set("senzuY", senzuTarget.y.toFixed(6));
+    url.searchParams.set("button", "false");
+    targetUrl.value = url.href;
+}
+
+function closeTargetPicker() {
+    targetPicker.hidden = true;
+    targetButton.setAttribute("aria-pressed", "false");
+}
+
+function setControlsVisible(visible) {
+    controlsVisible = visible;
+    buttonContainer.hidden = !visible;
+    if (!visible) {
+        closeTargetPicker();
+        // Release focus so a hidden button cannot keep receiving keyboard input.
+        if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    }
+    showTargetSettings();
+}
+
+// Pointer/touch clicks and keyboard input reveal the controls; chat events do not.
+document.addEventListener("click", () => setControlsVisible(true));
+document.getElementById("hideControlsButton").addEventListener("click", event => {
+    event.stopPropagation();
+    setControlsVisible(false);
+});
+targetButton.addEventListener("click", () => {
+    targetPicker.hidden = false;
+    targetButton.setAttribute("aria-pressed", "true");
+});
+targetPicker.addEventListener("click", event => {
+    senzuTarget = { x: clampUnit(event.clientX / window.innerWidth), y: clampUnit(event.clientY / window.innerHeight) };
+    try { localStorage.setItem(targetStorageKey, JSON.stringify(senzuTarget)); } catch (error) { /* URL still works. */ }
+    closeTargetPicker();
+    showTargetSettings();
+});
+document.addEventListener("keydown", event => {
+    if (event.key === "Escape") {
+        setControlsVisible(false);
+    } else if (!event.repeat && !["Shift", "Control", "Alt", "Meta"].includes(event.key)) {
+        setControlsVisible(true);
+    }
+});
+document.getElementById("resetTargetButton").addEventListener("click", () => {
+    senzuTarget = null;
+    try { localStorage.removeItem(targetStorageKey); } catch (error) { /* Storage is optional. */ }
+    const url = new URL(window.location.href);
+    url.searchParams.delete("senzuX");
+    url.searchParams.delete("senzuY");
+    window.history.replaceState(null, "", url.href);
+    closeTargetPicker();
+    showTargetSettings();
+});
+targetUrl.addEventListener("click", () => targetUrl.select());
+showTargetSettings();
 
 // ============================================================
 // STATE
 // ============================================================
 
 const muffins = [];
+const beans = [];
+
+// Follow the audio clock so loading delays and dropped frames cannot shift impact.
+function throwSenzu() {
+    // Keep an in-flight throw aimed at the target selected when it was triggered.
+    const target = senzuTarget ? { ...senzuTarget } : null;
+    const sound = senzuSound.cloneNode();
+    sound.play().then(() => {
+        const element = document.createElement("img");
+        const size = Math.max(1, Math.min(SETTINGS.baseSize, window.innerWidth, window.innerHeight));
+        element.src = "senzu.png";
+        element.className = "muffin";
+        element.alt = "Senzu bean";
+        element.draggable = false;
+        element.style.width = `${size}px`;
+        element.style.height = `${size}px`;
+        element.style.objectFit = "contain";
+        const fromLeft = !target || target.x >= 0.5;
+        const startX = fromLeft ? -size : window.innerWidth;
+        element.style.left = `${startX}px`;
+        element.style.top = `${Math.max(0, (window.innerHeight - size) * 0.4)}px`;
+        while (beans.length >= SETTINGS.maxMuffins) removeBean(beans[0]);
+        muffinArea.appendChild(element);
+        beans.push({ element, sound, size, target, fromLeft, x: startX, y: 0, rotation: 0,
+            impacted: false, fallTime: 0, velocityX: 0, velocityY: 0 });
+    }).catch(error => console.warn("Could not play senzu sound:", error));
+}
+
+function removeBean(bean) {
+    beans.splice(beans.indexOf(bean), 1);
+    bean.sound.pause();
+    bean.element.remove();
+}
+
+function updateBeans(deltaTime) {
+    for (let i = beans.length - 1; i >= 0; i--) {
+        const bean = beans[i];
+        const wallX = Math.max(0, window.innerWidth - bean.size);
+        if (!bean.impacted) {
+            // Hit 120 ms before the clip finishes, using its actual metadata.
+            if (!Number.isFinite(bean.sound.duration) || bean.sound.duration <= 0) continue;
+            const impactTime = Math.max(0.01, bean.sound.duration - 0.12);
+            const progress = Math.min(1, bean.sound.currentTime / impactTime);
+            const targetX = bean.target ? Math.max(0, Math.min(wallX, bean.target.x * window.innerWidth - bean.size / 2)) : wallX;
+            const targetY = bean.target ? Math.max(0, Math.min(window.innerHeight - bean.size, bean.target.y * window.innerHeight - bean.size / 2)) : Math.max(0, (window.innerHeight - bean.size) * 0.4);
+            const startX = bean.fromLeft ? -bean.size : window.innerWidth;
+            const direction = bean.fromLeft ? 1 : -1;
+            bean.x = startX + (targetX - startX) * progress;
+            // A shallow arc lands exactly on the chosen point at impactTime.
+            const arc = bean.target ? Math.min(120, targetY) : 0;
+            bean.y = targetY - 4 * arc * progress * (1 - progress);
+            bean.rotation = direction * progress * 720;
+            if (progress >= 1 || bean.sound.ended) {
+                bean.x = targetX;
+                bean.y = targetY;
+                bean.impacted = true;
+                bean.velocityX = -direction * Math.min(500, Math.max(120, Math.abs(targetX - startX) / impactTime * 0.45));
+                bean.velocityY = 80;
+            }
+        } else {
+            bean.fallTime += deltaTime;
+            bean.velocityY += Math.max(100, SETTINGS.gravity) * deltaTime;
+            bean.x += bean.velocityX * deltaTime;
+            bean.y += bean.velocityY * deltaTime;
+            bean.rotation -= (bean.fromLeft ? 1 : -1) * 360 * deltaTime;
+        }
+        bean.element.style.left = `${bean.x}px`;
+        bean.element.style.top = `${bean.y}px`;
+        bean.element.style.transform = `rotate(${bean.rotation}deg)`;
+        if (bean.impacted && (bean.y > window.innerHeight || bean.fallTime > 10)) removeBean(bean);
+    }
+}
 
 // ============================================================
 // RANDOM
@@ -143,6 +298,8 @@ cookieButton.addEventListener("click", () => {
     spawnObjects("cookie", amount);
 });
 
+senzuButton.addEventListener("click", throwSenzu);
+
 // ============================================================
 // TWITCH / COMFYJS
 // ============================================================
@@ -162,6 +319,10 @@ function connectToTwitch() {
 
     ComfyJS.onCommand = function(user, command, message, flags, extra) {
         command = command.toLowerCase();
+        if (command === "senzu") {
+            throwSenzu();
+            return;
+        }
         if (command !== "muffin" && command !== "cookie") return;
 
         const amount = randomInt(minMuffins, maxMuffins);
@@ -274,6 +435,7 @@ let lastTime = performance.now();
 function update(currentTime) {
     const deltaTime = Math.min((currentTime - lastTime) / 1000, 0.05);
     lastTime = currentTime;
+    updateBeans(deltaTime);
 
     // Individual physics
 
